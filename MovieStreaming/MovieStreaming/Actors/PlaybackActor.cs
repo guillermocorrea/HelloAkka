@@ -13,14 +13,40 @@ namespace MovieStreaming.Actors
         public PlaybackActor()
         {
             Console.WriteLine("Creating a PlaybackActor...");
-            ReceiveAsync<PlayMovieMessage>(message => HandlePlayMovieMessageAsync(message), message => message.UserId == 42);
+            ReceiveAsync<PlayMovieMessage>(message => HandlePlayMovieMessageAsync(message));
         }
 
         private Task HandlePlayMovieMessageAsync(PlayMovieMessage message)
         {
-            Console.WriteLine("Received: " + message.MovieTitle);
-            Console.WriteLine("Received User ID: " + message.UserId);
+            ColorConsole.WriteLineYellow(string.Format("Play movie '{0}' for user '{1}'",
+                message.MovieTitle,
+                message.UserId));
             return Task.FromResult<object>(null);
+        }
+
+        protected override void PreStart()
+        {
+            ColorConsole.WriteLineGreen("PlaybackActor PreStart");
+            base.PreStart();
+        }
+
+
+        protected override void PostStop()
+        {
+            ColorConsole.WriteLineGreen("PlaybackActor PostStop");
+            base.PostStop();
+        }
+
+        protected override void PreRestart(Exception reason, object message)
+        {
+            ColorConsole.WriteLineGreen("PlaybackActor PreRestart because: " + reason);
+            base.PreRestart(reason, message);
+        }
+
+        protected override void PostRestart(Exception reason)
+        {
+            ColorConsole.WriteLineGreen("PlaybackActor PostRestart because: " + reason);
+            base.PostRestart(reason);
         }
     }
 }
