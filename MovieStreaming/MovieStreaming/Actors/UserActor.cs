@@ -13,11 +13,35 @@ namespace MovieStreaming.Actors
         {
             Console.WriteLine("Creating a UserActor");
 
-            ReceiveAsync<PlayMovieMessage>(message => HandlePlayMovieMessageAsync(message));
-            ReceiveAsync<StopMovieMessage>(message => HandleStopMovieMessageAsync(message));
+            ColorConsole.WriteLineCyan("Setting initial behaviour to stopped");
+            Stopped();
+            /*ReceiveAsync<PlayMovieMessage>(message => HandlePlayMovieMessageAsync(message));
+            ReceiveAsync<StopMovieMessage>(message => HandleStopMovieMessageAsync(message));*/
         }
 
-        private Task HandleStopMovieMessageAsync(StopMovieMessage message)
+        private void Stopped()
+        {
+            ReceiveAsync<PlayMovieMessage>(message => StartMoviePlaying(message.MovieTitle));
+            ReceiveAsync<StopMovieMessage>(message => {
+                ColorConsole.WriteLineRed("Error: cannot stop movie if nothing is playing");
+                return Task.FromResult<object>(null);
+            });
+
+            ColorConsole.WriteLineCyan("UserActor state has become Stopped");
+        }
+
+        private void Playing()
+        {
+            ReceiveAsync<PlayMovieMessage>(message => {
+                ColorConsole.WriteLineRed("Error: cannot start playing another movie before stopping existing one");
+                return Task.FromResult<object>(null);
+            });
+            ReceiveAsync<StopMovieMessage>(message => StopPlayingCurrentMovie());
+
+            ColorConsole.WriteLineCyan("UserActor state has become Playing");
+        }
+
+        /*private Task HandleStopMovieMessageAsync(StopMovieMessage message)
         {
             if (_currentlyWatching == null)
             {
@@ -29,15 +53,18 @@ namespace MovieStreaming.Actors
             }
 
             return Task.FromResult<object>(null);
-        }
+        }*/
 
-        private void StopPlayingCurrentMovie()
+        private Task StopPlayingCurrentMovie()
         {
             ColorConsole.WriteLineYellow(string.Format("User has stopped watching movie '{0}' ", _currentlyWatching));
             _currentlyWatching = null;
+            Become(Stopped);
+
+            return Task.FromResult<object>(null);
         }
 
-        private Task HandlePlayMovieMessageAsync(PlayMovieMessage message)
+        /*private Task HandlePlayMovieMessageAsync(PlayMovieMessage message)
         {
             if (_currentlyWatching != null)
             {
@@ -49,12 +76,15 @@ namespace MovieStreaming.Actors
             }
 
             return Task.FromResult<object>(null);
-        }
+        }*/
 
-        private void StartMoviePlaying(string movieTitle)
+        private Task StartMoviePlaying(string movieTitle)
         {
             _currentlyWatching = movieTitle;
             ColorConsole.WriteLineYellow(string.Format("Currently watching '{0}'", _currentlyWatching));
+
+            Become(Playing);
+            return Task.FromResult<object>(null);
         }
 
         protected override void PreStart()
