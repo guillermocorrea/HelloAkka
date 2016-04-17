@@ -1,60 +1,67 @@
-﻿using Akka.Actor;
+﻿using System;
+using System.Threading;
+using Akka.Actor;
 using MovieStreaming.Actors;
 using MovieStreaming.Messages;
-using System;
-using System.Threading.Tasks;
 
 namespace MovieStreaming
 {
-    class Program
+    internal class Program
     {
         private static ActorSystem MovieStreamingActorSystem;
 
-        static void Main(string[] args)
+        private static void Main(string[] args)
         {
+            ColorConsole.WriteLineGray("Creating MovieStreamingActorSystem");
             MovieStreamingActorSystem = ActorSystem.Create("MovieStreamingActorSystem");
-            Console.WriteLine("Actor system created");
 
-            Props userActorProps = Props.Create<UserActor>();
-            IActorRef userActorRef = MovieStreamingActorSystem.ActorOf(userActorProps, "UserActor");
+            ColorConsole.WriteLineGray("Creating actor supervisory hierarchy");
+            MovieStreamingActorSystem.ActorOf(Props.Create<PlaybackActor>(), "Playback");
 
-            Console.ReadKey();
-            Console.WriteLine("Sending a PlayMovieMessage (Codenan the destroyer)");
-            userActorRef.Tell(new PlayMovieMessage("Codenan the destroyer", 42));
 
-            Console.ReadKey();
-            Console.WriteLine("Sending a PlayMovieMessage (Boolean lies)");
-            userActorRef.Tell(new PlayMovieMessage("Boolean lies", 42));
+            do
+            {
+                ShortPause();
 
-            Console.ReadKey();
-            Console.WriteLine("Sending a StopMovieMessage");
-            userActorRef.Tell(new StopMovieMessage());
+                Console.WriteLine();
+                Console.ForegroundColor = ConsoleColor.DarkGray;
+                ColorConsole.WriteLineGray("enter a command and hit enter");
 
-            Console.ReadKey();
-            Console.WriteLine("Sending another StopMovieMessage");
-            userActorRef.Tell(new StopMovieMessage());
+                var command = Console.ReadLine();
 
-            /*
-            Props playbackActorProps = Props.Create<PlaybackActor>();
-            IActorRef playbackActorRef = MovieStreamingActorSystem.ActorOf(playbackActorProps, "PlaybackActor");
-            
-            playbackActorRef.Tell(new PlayMovieMessage("Akka the movie", 42));
-            playbackActorRef.Tell(new PlayMovieMessage("Fast N Furious", 43));
-            playbackActorRef.Tell(new PlayMovieMessage("The Revenant", 44));
-            playbackActorRef.Tell(new PlayMovieMessage("007", 45));
+                if (command.StartsWith("play"))
+                {
+                    int userId = int.Parse(command.Split(',')[1]);
+                    string movieTitle = command.Split(',')[2];
 
-            playbackActorRef.Tell(PoisonPill.Instance);
-            */
+                    var message = new PlayMovieMessage(movieTitle, userId);
+                    MovieStreamingActorSystem.ActorSelection("/user/Playback/UserCoordinator").Tell(message);
+                }
 
-            Console.ReadLine();
+                if (command.StartsWith("stop"))
+                {
+                    int userId = int.Parse(command.Split(',')[1]);
 
-            MovieStreamingActorSystem.Terminate();
+                    var message = new StopMovieMessage(userId);
+                    MovieStreamingActorSystem.ActorSelection("/user/Playback/UserCoordinator").Tell(message);
+                }
 
-            Task task = MovieStreamingActorSystem.WhenTerminated;
-            task.Wait();
-            Console.WriteLine("Actor system terminated");
+                if (command == "exit")
+                {
+                    MovieStreamingActorSystem.Shutdown();
+                    MovieStreamingActorSystem.AwaitTermination();
+                    ColorConsole.WriteLineGray("Actor system shutdown");
+                    Console.ReadKey();
+                    Environment.Exit(1);
+                }
 
-            Console.ReadLine();
+            } while (true);
+        }
+
+        // Perform a short pause for demo purposes to allow console to update nicely
+        private static void ShortPause()
+        {
+            Thread.Sleep(450);
         }
     }
 }

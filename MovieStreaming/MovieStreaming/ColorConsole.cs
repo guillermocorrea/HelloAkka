@@ -4,48 +4,55 @@ namespace MovieStreaming
 {
     public static class ColorConsole
     {
-        public static void WriteLineGreen(string message)
+        public static void WriteLineGreen(string message, params object[] args)
         {
-            var beforeColor = Console.ForegroundColor;
-
-            Console.ForegroundColor = ConsoleColor.Green;
-
-            Console.WriteLine(message);
-
-            Console.ForegroundColor = beforeColor;
+            Write(ConsoleColor.Green, string.Format(message, args));
         }
 
-        public static void WriteLineYellow(string message)
+        public static void WriteLineYellow(string message, params object[] args)
         {
-            var beforeColor = Console.ForegroundColor;
-
-            Console.ForegroundColor = ConsoleColor.Yellow;
-
-            Console.WriteLine(message);
-
-            Console.ForegroundColor = beforeColor;
+            Write(ConsoleColor.Yellow, string.Format(message, args));
         }
 
-        public static void WriteLineRed(string message)
+        public static void WriteLineRed(string message, params object[] args)
         {
-            var beforeColor = Console.ForegroundColor;
-
-            Console.ForegroundColor = ConsoleColor.Red;
-
-            Console.WriteLine(message);
-
-            Console.ForegroundColor = beforeColor;
+            Write(ConsoleColor.Red, string.Format(message, args));
         }
 
-        public static void WriteLineCyan(string message)
+        public static void WriteLineCyan(string message, params object[] args)
         {
-            var beforeColor = Console.ForegroundColor;
+            Write(ConsoleColor.Cyan, string.Format(message, args));
+        }
 
-            Console.ForegroundColor = ConsoleColor.Cyan;
+        public static void WriteLineGray(string message, params object[] args)
+        {
+            Write(ConsoleColor.Gray, string.Format(message, args));
+        }
 
-            Console.WriteLine(message);
+        public static void WriteMagenta(string message, params object[] args)
+        {
+            Write(ConsoleColor.Magenta, string.Format(message, args));
+        }
 
-            Console.ForegroundColor = beforeColor;
+        public static void WriteWhite(string message, params object[] args)
+        {
+            Write(ConsoleColor.White, string.Format(message, args));
+        }
+
+
+        static object locker = new object();
+        private static void Write(ConsoleColor color, string message)
+        {
+            // Locking for demo purposes so we get the correct color output.
+            // This represents shared state accessed by different actors so
+            // should be avoided in practice as it breaks the abstraction
+            // of the Actor Model.
+            lock (locker)
+            {
+                Console.ForegroundColor = color;
+
+                Console.WriteLine(message);
+            }
         }
     }
 }

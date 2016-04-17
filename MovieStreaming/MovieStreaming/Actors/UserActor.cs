@@ -1,115 +1,86 @@
-﻿using System.Threading.Tasks;
+﻿using System;
 using Akka.Actor;
-using System;
 using MovieStreaming.Messages;
 
 namespace MovieStreaming.Actors
 {
     public class UserActor : ReceiveActor
     {
+        private readonly int _userId;
         private string _currentlyWatching;
 
-        public UserActor()
+        public UserActor(int userId)
         {
-            Console.WriteLine("Creating a UserActor");
+            _userId = userId;
 
-            ColorConsole.WriteLineCyan("Setting initial behaviour to stopped");
             Stopped();
-            /*ReceiveAsync<PlayMovieMessage>(message => HandlePlayMovieMessageAsync(message));
-            ReceiveAsync<StopMovieMessage>(message => HandleStopMovieMessageAsync(message));*/
-        }
-
-        private void Stopped()
-        {
-            ReceiveAsync<PlayMovieMessage>(message => StartMoviePlaying(message.MovieTitle));
-            ReceiveAsync<StopMovieMessage>(message => {
-                ColorConsole.WriteLineRed("Error: cannot stop movie if nothing is playing");
-                return Task.FromResult<object>(null);
-            });
-
-            ColorConsole.WriteLineCyan("UserActor state has become Stopped");
         }
 
         private void Playing()
         {
-            ReceiveAsync<PlayMovieMessage>(message => {
-                ColorConsole.WriteLineRed("Error: cannot start playing another movie before stopping existing one");
-                return Task.FromResult<object>(null);
-            });
-            ReceiveAsync<StopMovieMessage>(message => StopPlayingCurrentMovie());
+            Receive<PlayMovieMessage>(
+                message => ColorConsole.WriteLineRed(
+                    "UserActor {0} Error: cannot start playing another movie before stopping existing one", _userId));
 
-            ColorConsole.WriteLineCyan("UserActor state has become Playing");
+            Receive<StopMovieMessage>(message => StopPlayingCurrentMovie());
+
+            ColorConsole.WriteLineYellow("UserActor {0} has now become Playing", _userId);
         }
 
-        /*private Task HandleStopMovieMessageAsync(StopMovieMessage message)
+        private void Stopped()
         {
-            if (_currentlyWatching == null)
-            {
-                ColorConsole.WriteLineRed("Error: cannot stop movie if nothing is playing");
-            }
-            else
-            {
-                StopPlayingCurrentMovie();
-            }
+            Receive<PlayMovieMessage>(message => StartPlayingMovie(message.MovieTitle));
 
-            return Task.FromResult<object>(null);
-        }*/
+            Receive<StopMovieMessage>(
+                message => ColorConsole.WriteLineRed("UserActor {0} Error: cannot stop if nothing is playing", _userId));
 
-        private Task StopPlayingCurrentMovie()
-        {
-            ColorConsole.WriteLineYellow(string.Format("User has stopped watching movie '{0}' ", _currentlyWatching));
-            _currentlyWatching = null;
-            Become(Stopped);
-
-            return Task.FromResult<object>(null);
+            ColorConsole.WriteLineYellow("UserActor {0} has now become Stopped", _userId);
         }
 
-        /*private Task HandlePlayMovieMessageAsync(PlayMovieMessage message)
+        private void StartPlayingMovie(string title)
         {
-            if (_currentlyWatching != null)
-            {
-                ColorConsole.WriteLineRed("Error: cannot start playing another movie before stopping existing one");
-            }
-            else
-            {
-                StartMoviePlaying(message.MovieTitle);
-            }
+            _currentlyWatching = title;
 
-            return Task.FromResult<object>(null);
-        }*/
-
-        private Task StartMoviePlaying(string movieTitle)
-        {
-            _currentlyWatching = movieTitle;
-            ColorConsole.WriteLineYellow(string.Format("Currently watching '{0}'", _currentlyWatching));
+            ColorConsole.WriteLineYellow("UserActor {0} is currently watching '{1}'", _userId, _currentlyWatching);
 
             Become(Playing);
-            return Task.FromResult<object>(null);
         }
 
+        private void StopPlayingCurrentMovie()
+        {
+            ColorConsole.WriteLineYellow("UserActor {0} has stopped watching '{1}'", _userId, _currentlyWatching);
+
+            _currentlyWatching = null;
+
+            Become(Stopped);
+        }
+
+
+
+        #region Lifecycle hooks
         protected override void PreStart()
         {
-            ColorConsole.WriteLineGreen("UserActor PreStart");
-            base.PreStart();
+            ColorConsole.WriteLineYellow("UserActor {0} PreStart", _userId);
         }
-
 
         protected override void PostStop()
         {
-            ColorConsole.WriteLineGreen("UserActor PostStop");
-            base.PostStop();
+            ColorConsole.WriteLineYellow("UserActor {0} PostStop", _userId);
         }
 
         protected override void PreRestart(Exception reason, object message)
         {
-            ColorConsole.WriteLineGreen("UserActor PreRestart because: " + reason);
+            ColorConsole.WriteLineYellow("UserActor {0} PreRestart because: {1}", _userId, reason);
+
             base.PreRestart(reason, message);
         }
 
         protected override void PostRestart(Exception reason)
         {
-            ColorConsole.WriteLineGreen("UserActor PostRestart because: " + reason);
+            ColorConsole.WriteLineYellow("UserActor {0} PostRestart because: {1}", _userId, reason);
+
             base.PostRestart(reason);
         }
+        #endregion
     }
 }
